@@ -1,0 +1,5 @@
+---
+ip_address: 127.0.0.1
+ftp_user: public
+ftp_password: public
+shared_directory: /home/ftp_user/ftp

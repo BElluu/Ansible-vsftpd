@@ -1,0 +1,76 @@
+---
+- name: Create user for FTP
+  user:
+    name: '{{ftp_user}}'
+    shell: /bin/false
+    password: '{{ftp_password}}'
+
+- name: Create directory for FTP if not exists
+  file:
+    path: /home/{{ftp_user}}/ftp
+    state: directory
+    mode: '0755'
+
+- name: Install vsftpd package
+  package:
+    name: vsftpd
+    state: present
+    update_cache: true
+
+- name: Ensure FTP is installed
+  apt:
+    name: vsftpd
+
+- name: Adjust vsftpd.conf
+  blockinfile:
+    dest: /etc/vsftpd.conf
+    create: true
+    block: |
+      anonymous_enable=NO
+      local_enable=YES
+      local_root={{shared_directory}}
+      write_enable=YES
+      local_umask=002
+      anon_upload_enable=NO
+      dirmessage_enable=YES
+      xferlog_enable=YES
+      dual_log_enable=YES
+      connect_from_port_20=YES
+      xferlog_std_format=YES
+      chroot_local_user=YES
+      listen=YES
+      pam_service_name=ftp
+      userlist_enable=NO
+      tcp_wrappers=YES
+      force_dot_files=YES
+      ascii_upload_enable=YES
+      ascii_download_enable=YES
+      allow_writeable_chroot=YES
+      seccomp_sandbox=NO
+      pasv_enable=YES
+      pasv_max_port=12100
+      pasv_min_port=12000
+      pasv_address={{ip_address}}
+      userlist_enable=YES
+      userlist_file=/etc/ftpusers
+      userlist_deny=NO
+
+- name: Ensure ftpusers file exists
+  blockinfile:
+    dest: /etc/ftpusers
+    create: true
+    block: |
+      {{ftp_user}}
+
+- name: Insert sleep 1 in vsftpd (fix config error)
+  lineinfile:
+    path: /etc/init.d/vsftpd
+    regexp: 'n=0'
+    insertbefore: 'n=0'
+    line: 'sleep 1'
+
+- name: Ensure vsftpd is started and enabled
+  service:
+    name: vsftpd
+    state: started
+    enabled: true
